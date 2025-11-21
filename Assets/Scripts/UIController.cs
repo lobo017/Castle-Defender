@@ -28,8 +28,6 @@ public class UIController : MonoBehaviour
 
     [SerializeField] private Color normalButtonColor = Color.white;
     [SerializeField] private Color selectedButtonColor = Color.blue;
-    [SerializeField] private Color normalTextColor = Color.black;
-    [SerializeField] private Color selectedTextColor = Color.white;
 
     [SerializeField] private GameObject pausePanel;
     private bool _isGamePaused = false;
@@ -59,13 +57,96 @@ public class UIController : MonoBehaviour
         Spawner.OnMissionComplete -= ShowMissionComplete;
     }
 
+    [Header("Difficulty UI")]
+    [SerializeField] private GameObject difficultyPanel;
+    [SerializeField] private GameObject pauseMenuButtonsContainer; // New container reference
+    [SerializeField] private Button easyButton;
+    [SerializeField] private Button normalButton;
+    [SerializeField] private Button hardButton;
+    [SerializeField] private Button backButton;
+    [SerializeField] private Button difficultyMenuButton; // Button in pause menu to open difficulty
+
+    [Header("Visuals")]
+    [SerializeField] private Color selectedColor = Color.cyan;
+    [SerializeField] private Color normalColor = Color.white;
+    [SerializeField] private Color normalTextColor = Color.white;
+    [SerializeField] private Color selectedTextColor = Color.black;
+
     private void Start()
     {
+        // Ensure DifficultyManager exists
+        if (DifficultyManager.Instance == null)
+        {
+            GameObject go = new GameObject("DifficultyManager");
+            go.AddComponent<DifficultyManager>();
+        }
+
         speed1Button.onClick.AddListener(() => SetGameSpeed(0.2f));
         speed2Button.onClick.AddListener(() => SetGameSpeed(1f));
         speed3Button.onClick.AddListener(() => SetGameSpeed(2f));
 
         HighlightSelectedSpeedButton(GameManager.Instance.GameSpeed);
+
+        // Difficulty Buttons
+        if (easyButton != null) easyButton.onClick.AddListener(() => SelectDifficultyAndRestart(Difficulty.Easy));
+        if (normalButton != null) normalButton.onClick.AddListener(() => SelectDifficultyAndRestart(Difficulty.Normal));
+        if (hardButton != null) hardButton.onClick.AddListener(() => SelectDifficultyAndRestart(Difficulty.Hard));
+        if (backButton != null) backButton.onClick.AddListener(HideDifficultyPanel);
+        if (difficultyMenuButton != null) difficultyMenuButton.onClick.AddListener(ShowDifficultyPanel);
+
+        if (difficultyPanel != null) difficultyPanel.SetActive(false);
+    }
+
+    private void SelectDifficultyAndRestart(Difficulty difficulty)
+    {
+        SetDifficulty(difficulty);
+        // Resume time before restarting to ensure clean state if needed, though LoadLevel usually handles it.
+        GameManager.Instance.SetTimeScale(1f); 
+        RestartLevel();
+    }
+
+    public void ShowDifficultyPanel()
+    {
+        if (difficultyPanel != null)
+        {
+            difficultyPanel.SetActive(true);
+            UpdateDifficultyVisuals();
+        }
+        if (pauseMenuButtonsContainer != null)
+        {
+            pauseMenuButtonsContainer.SetActive(false);
+        }
+    }
+
+    public void HideDifficultyPanel()
+    {
+        if (difficultyPanel != null)
+            difficultyPanel.SetActive(false);
+        
+        if (pauseMenuButtonsContainer != null)
+        {
+            pauseMenuButtonsContainer.SetActive(true);
+        }
+    }
+
+    private void SetDifficulty(Difficulty difficulty)
+    {
+        if (DifficultyManager.Instance != null)
+        {
+            DifficultyManager.Instance.SetDifficulty(difficulty);
+            UpdateDifficultyVisuals();
+        }
+    }
+
+    private void UpdateDifficultyVisuals()
+    {
+        if (DifficultyManager.Instance == null) return;
+
+        Difficulty current = DifficultyManager.Instance.SelectedDifficulty;
+
+        UpdateButtonVisual(easyButton, current == Difficulty.Easy);
+        UpdateButtonVisual(normalButton, current == Difficulty.Normal);
+        UpdateButtonVisual(hardButton, current == Difficulty.Hard);
     }
 
     private void Update()
@@ -199,6 +280,10 @@ public class UIController : MonoBehaviour
             pausePanel.SetActive(true);
             _isGamePaused = true;
             GameManager.Instance.SetTimeScale(0f);
+
+            // Reset menu state
+            if (pauseMenuButtonsContainer != null) pauseMenuButtonsContainer.SetActive(true);
+            if (difficultyPanel != null) difficultyPanel.SetActive(false);
         }
     }
     public void RestartLevel()

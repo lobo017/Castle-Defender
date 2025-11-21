@@ -106,7 +106,25 @@ public class Spawner : MonoBehaviour
 
     private void SpawnEnemy()
     {
-        if (_poolDictionary.TryGetValue(CurrentWave.enemyType, out var pool))
+        EnemyType enemyType = CurrentWave.enemyType;
+
+        if (DifficultyManager.Instance != null)
+        {
+            switch (DifficultyManager.Instance.SelectedDifficulty)
+            {
+                case Difficulty.Easy:
+                    enemyType = EnemyType.Orc;
+                    break;
+                case Difficulty.Normal:
+                    enemyType = EnemyType.Dragon;
+                    break;
+                case Difficulty.Hard:
+                    enemyType = EnemyType.Kaiju;
+                    break;
+            }
+        }
+
+        if (_poolDictionary.TryGetValue(enemyType, out var pool))
         {
             GameObject spawnedObject = pool.GetPooledObject();
             spawnedObject.transform.position = transform.position;
